@@ -15,7 +15,13 @@ final class UpdateChecker {
     /// 이 앱의 릴리스 저장소. PokeTokenBar Extended 는 상류(chattymin/PokeTokenBar)와 별개로
     /// 1.0.0 부터 버전을 매기므로(2026-09-15) 상류를 보면 2.x 가 늘 "새 버전"이 되어 배너가
     /// 상시로 뜬다 — 반드시 이 저장소를 본다.
-    nonisolated static let releaseRepo = "sun007021/PokeTokenBar"
+    ///
+    /// ★ 개명(2026-09-24): `sun007021/PokeTokenBar` → `…Extended`. GitHub 리다이렉트가 옛
+    ///   이름을 아직 받아주지만 **의존하지 않는다** — 리다이렉트는 누군가 옛 이름으로 새
+    ///   저장소를 만드는 순간 끊기고, 그때 이 상수는 **남의 저장소의 릴리스를 사용자에게
+    ///   업데이트로 제시한다**(응답의 `html_url` 을 그대로 NSWorkspace.open 에 넘긴다 —
+    ///   host 검사는 github.com 여부만 보므로 이 오염을 못 막는다).
+    nonisolated static let releaseRepo = "sun007021/PokeTokenBarExtended"
     private let repo = UpdateChecker.releaseRepo
     private let clock: () -> Date
     private var lastChecked: Date?

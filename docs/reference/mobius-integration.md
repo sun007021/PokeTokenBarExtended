@@ -353,7 +353,7 @@ PokeTokenBar Extended 는 상류와 **별개로 1.0.0 부터** 버전을 매긴�
 |---|---|
 | `scripts/build-app.sh` | `VERSION="1.0.0"` 한 줄 — 유일한 정의 지점. `CFBundleShortVersionString`·`CFBundleVersion` 둘 다 이 값 |
 | 태그 | `vX.Y.Z`, 주석 `PokeTokenBar Extended X.Y.Z` (`release.sh` 가 이 주석으로 자기 태그를 찾는다) |
-| 업데이트 배너 | `UpdateChecker.releaseRepo = "sun007021/PokeTokenBar"` — **이 저장소의 릴리스만 본다** |
+| 업데이트 배너 | `UpdateChecker.releaseRepo = "sun007021/PokeTokenBarExtended"` — **이 저장소의 릴리스만 본다** |
 
 ★ **배너가 상류를 보면 안 된다.** 1.x 에서 상류 2.x 를 보면 늘 "새 버전"이라 배너가 상시로 뜬다.
 그래서 "상류 릴리스 알림을 계속 받는다"던 옛 결정도 함께 폐기됐다 — 상류 변경은 사람이 `git fetch

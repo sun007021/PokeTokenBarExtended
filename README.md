@@ -98,11 +98,11 @@ duplicate that.
 
 ### Download (recommended)
 
-**[⬇️ Download PokeTokenBarExtended.dmg](https://github.com/sun007021/PokeTokenBar/releases/latest/download/PokeTokenBarExtended.dmg)**
+**[⬇️ Download PokeTokenBarExtended.dmg](https://github.com/sun007021/PokeTokenBarExtended/releases/latest/download/PokeTokenBarExtended.dmg)**
 — always the latest release · macOS 14+ · Apple silicon
 
 1. Download the DMG from the link above (older versions are on the
-   [Releases page](https://github.com/sun007021/PokeTokenBar/releases)).
+   [Releases page](https://github.com/sun007021/PokeTokenBarExtended/releases)).
 2. Open it and drag `PokeTokenBarExtended.app` onto the **Applications** shortcut.
    Keep it in `/Applications` — launch at login and automatic restart after a crash point
    there.

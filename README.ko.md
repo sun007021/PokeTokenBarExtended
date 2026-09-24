@@ -94,11 +94,11 @@ Pi Agent · omp)을 macOS 메뉴바 속 자라나는 **포켓몬 companion** 으
 
 ### 다운로드 (권장)
 
-**[⬇️ PokeTokenBarExtended.dmg 다운로드](https://github.com/sun007021/PokeTokenBar/releases/latest/download/PokeTokenBarExtended.dmg)**
+**[⬇️ PokeTokenBarExtended.dmg 다운로드](https://github.com/sun007021/PokeTokenBarExtended/releases/latest/download/PokeTokenBarExtended.dmg)**
 — 항상 최신 릴리스 · macOS 14+ · Apple silicon
 
 1. 위 링크에서 DMG 를 받습니다 (이전 버전은
-   [Releases 페이지](https://github.com/sun007021/PokeTokenBar/releases)에 있습니다).
+   [Releases 페이지](https://github.com/sun007021/PokeTokenBarExtended/releases)에 있습니다).
 2. DMG 를 열고 `PokeTokenBarExtended.app` 을 **Applications** 바로가기로 드래그합니다.
    반드시 `/Applications` 에 두세요 — 로그인 시 실행과 크래시 후 자동 재실행이 그 경로를
    가리킵니다.

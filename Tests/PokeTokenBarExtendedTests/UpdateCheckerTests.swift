@@ -34,7 +34,7 @@ final class UpdateCheckerTests: XCTestCase {
     /// 대상이 이 앱의 저장소여야 한다는 결론을 함께 잠근다.
     func testChecksThisAppsOwnReleasesBecauseUpstreamVersionsAlwaysLookNewer() {
         XCTAssertTrue(UpdateChecker.isNewer("2.5.4", than: "1.0.0"))
-        XCTAssertEqual(UpdateChecker.releaseRepo, "sun007021/PokeTokenBar")
+        XCTAssertEqual(UpdateChecker.releaseRepo, "sun007021/PokeTokenBarExtended")
     }
 
     /// semver 빌드 메타데이터(`+…`)는 우선순위에서 제외된다. `.` 으로 그냥 쪼개면
