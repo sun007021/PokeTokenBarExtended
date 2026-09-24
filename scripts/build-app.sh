@@ -11,7 +11,7 @@ cd "$(dirname "$0")/.."
 # 늘 "새 버전"이라 배너가 상시로 뜬다.
 # CFBundleVersion 도 같은 값을 쓴다 — 숫자·마침표뿐이라 LaunchServices 비교에 그대로 맞는다.
 # `release.sh` 가 이 한 줄(`VERSION=`)을 고친다.
-VERSION="1.0.0"
+VERSION="1.0.1"
 BUNDLE_VERSION="$VERSION"
 APP_NAME="PokeTokenBarExtended"
 # Finder·메뉴·정보 창에 보이는 표시 이름만 다르게 한다 — CFBundleName(실행파일 이름과 결합돼
