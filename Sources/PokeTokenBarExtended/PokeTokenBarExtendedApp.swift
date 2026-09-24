@@ -135,6 +135,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         applyState()
     }
 
+    /// 이미 실행 중인 앱을 **다시 여는** 요청(Finder 에서 더블클릭, `open -a`, Dock 아이콘)을
+    /// 삼킨다. `false` = "기본 동작을 하지 마라"(Apple 문서: true 면 평소 작업, false 면 아무것도
+    /// 안 함).
+    ///
+    /// ★ 이게 없으면 **빈 검은 창**이 뜬다. `App` 은 Scene 을 최소 하나 요구하는데 이 앱의
+    ///   유일한 Scene 은 `Settings { EmptyView() }` 다(메뉴바는 Scene 이 아니라 위
+    ///   `NSStatusItem` 이 그린다). 기본 reopen 처리는 "창이 없으면 첫 Scene 을 연다"라서,
+    ///   그 유일한 Scene — 내용이 `EmptyView` 인 설정 창 — 을 띄운다.
+    /// ★ 이 앱은 LaunchAgent(`LoginItem`, KeepAlive)로 **상시 실행**되므로 사용자가 앱을
+    ///   "연다"는 행위는 거의 항상 새 실행이 아니라 reopen 이다. 특히 새 버전을 설치한 직후
+    ///   `/Applications` 에서 더블클릭하는 순간이 정확히 그 경로다 — 업그레이드할 때마다
+    ///   빈 창을 보게 된다.
+    /// ★ 메뉴바 아이콘은 그대로 있으므로 "아무것도 안 함"이 이 앱에서는 올바른 응답이다.
+    ///   팝오버를 여는 것도 방법이지만, reopen 은 사용자가 아이콘을 누른 것과 다른 신호라
+    ///   여기서 UI 를 띄우지 않는다.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        false
+    }
+
     /// Observation 기반 상태 반영 — store 의 menuTitle(=menuLines) 변경 시 재호출.
     /// (isStale 은 더 이상 추적 안 함 — 메뉴바 dim 제거로 시각 출력에 관여하지 않음.)
     private func observeStore() {
