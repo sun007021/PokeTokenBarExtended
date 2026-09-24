@@ -347,8 +347,13 @@ final class AccountsState: ObservableObject {
     static func advisoryIsEffective(switchEnabled: Bool, claudeAutoSwitchEnabled: Bool) -> Bool {
         switchEnabled && claudeAutoSwitchEnabled
     }
-    /// 폴링·pill 셋/클리어가 모두 보는 게이트 — 부모를 끄면 5분 폴링이 서고, 남은 advisory
+    /// advisory pill 셋/클리어와 선제 전환이 보는 게이트 — 끄면 pill이 서고, 남은 advisory
     /// pill은 아래 정리 경로가 다음 틱에 걷어간다.
+    ///
+    /// ★ **5분 usage 폴 자체는 이 게이트가 아니다**(2026-09-16 결함 수정). 폴은 소진 기록도
+    ///   겸하는데, 그건 advisory 옵션과 무관한 자동 전환의 최소 동작이다 — 폴을 이 게이트에
+    ///   묶어 두면 옵션을 안 켠 사용자는 5시간 창이 100%가 돼도(로그 429가 안 남는 경우)
+    ///   전환을 못 받는다. 폴의 게이트는 `usagePollIsWorthwhile`.
     private var advisoryEffectivelyEnabled: Bool {
         Self.advisoryIsEffective(switchEnabled: advisorySwitchEnabled,
                                  claudeAutoSwitchEnabled: store.file.isAutoSwitchEnabled(.claude))
@@ -1106,9 +1111,16 @@ final class AccountsState: ObservableObject {
                 recomputeBadgeLive(now: now)    // fresh 스냅샷으로 confirmed 최종 판정
                 // 서킷 브레이커: 사용량 조회가 3연속 실패하면 배경 폴링을 멈춘다(네트워크
                 // 이상 방어 — 이상 중엔 미리 전환 자체가 무의미). 재개는 팝오버 열기/재시작.
-                if advisoryEffectivelyEnabled,
+                // ★ 게이트가 advisory 토글이 **아닌** 이유(2026-09-16 결함): 소진 기록을 만드는
+                //   경로가 세션 로그 429 하나뿐이라, 5시간 창이 100%가 돼도 CLI가 그 뒤로 요청을
+                //   안 보내면(막힌 사용자는 당연히 멈춘다) 기록이 없어 `onTick`이 자동 전환을
+                //   못 한다 — usage API 는 이미 100%를 보고 있는데도. 그래서 이 폴은 advisory
+                //   토글과 무관하게 돈다. 대신 **전환할 이유가 있을 때만** 돈다(아래 헬퍼).
+                if Self.usagePollIsWorthwhile(
+                        autoSwitchEnabled: store.file.isAutoSwitchEnabled(.claude),
+                        claudeAccountCount: store.file.accounts(of: .claude).count),
                    !UsagePollBreaker.isTripped(consecutiveFailures: consecutiveUsagePollFailures) {
-                    await pollThreshold(now: now)
+                    await pollActiveUsage(now: now)
                 }
             } else {
                 // false = 이른 가드 실패(라이브 이메일이 등록 활성과 불일치) 또는 저장 실패.
@@ -1573,10 +1585,26 @@ final class AccountsState: ObservableObject {
         }
     }
 
-    /// 임계값 폴 — **5분 fresh sync 성사 뒤에만** 호출된다(활성 secret이 방금 갱신됨).
-    /// 활성 Claude를 저장 secret으로 조회(라이브 2차 읽기 없음)해 사용률을 얻고, 히스테리시스로
-    /// advisory를 set/clear한 뒤, advisory가 유효하면 후보 탐색→엔진 판정→결정 적용을 한다.
-    private func pollThreshold(now: Date) async {
+    /// 이 5분 폴을 돌릴 이유가 있는가 — **전환할 곳이 없으면 돌리지 않는다.**
+    ///
+    /// 폴 자체가 계정당 네트워크 1회다. 자동 전환이 꺼져 있거나 Claude 계정이 하나뿐이면
+    /// 소진을 기록해도 갈 곳이 없어 조회가 순수 비용이 된다("끄면 아무것도 안 돈다" 계약).
+    /// 두 조건 모두 실제로 존재한다 — 계정 하나로 게이지만 보는 사용자, 자동 전환을 끄고
+    /// 직접 고르는 사용자. 로그 429 경로는 이 게이트와 무관하게 그대로 돈다.
+    static func usagePollIsWorthwhile(autoSwitchEnabled: Bool, claudeAccountCount: Int) -> Bool {
+        autoSwitchEnabled && claudeAccountCount >= 2
+    }
+
+    /// 활성 Claude 사용량 폴 — **5분 fresh sync 성사 뒤에만** 호출된다(활성 secret이 방금 갱신됨).
+    /// 활성 Claude를 저장 secret으로 조회(라이브 2차 읽기 없음)해 ① 소진이면 그대로 기록하고,
+    /// ② advisory 기능이 켜져 있으면 히스테리시스로 advisory를 set/clear한 뒤 후보 탐색→엔진
+    /// 판정→결정 적용을 한다.
+    ///
+    /// ★ ①과 ②의 게이트가 다르다. ②는 사용자 옵션(`advisorySwitchEnabled`)이지만 ①은
+    ///   **자동 전환의 최소 동작**이다 — 로그 429 없이 100%에 도달하는 경우(Desktop·웹에서
+    ///   사용량을 태웠거나, 막힌 사용자가 CLI 요청을 더 보내지 않는 경우)가 유일한 기록 경로를
+    ///   비워, 옵션을 켜지 않은 사용자에게 자동 전환이 통째로 사라졌다(2026-09-16 실측).
+    private func pollActiveUsage(now: Date) async {
         // 재인증 필요/저장 secret 없으면 스킵(secret은 5분 블록이 방금 동기화했다).
         guard let active = store.file.active(of: .claude), !active.needsReauth,
               let blob = (try? store.secret(for: active.id))?.keychainBlob else { return }
@@ -1589,8 +1617,21 @@ final class AccountsState: ObservableObject {
         }
         consecutiveUsagePollFailures = 0
         usage[active.id] = snap
-        // await 뒤 활성이 바뀌었을 수 있다 — 재확인.
-        guard let current = store.file.active(of: .claude), current.id == active.id else { return }
+
+        // ① 소진 기록 — **로그 429가 없어도.** 판정은 로그 경로와 **같은 함수**로 한다
+        //    (`HitAttribution.verdict`): 규칙을 두 곳에 적으면 같은 스냅샷이 "어느 경로로
+        //    들어왔느냐"에 따라 다르게 판정된다. 로그 경로가 씌우는 귀속 검증은 여기 필요 없다
+        //    — 이 스냅샷은 **이 계정의 토큰으로** 조회한 것이라 오귀인이 구조적으로 불가능하다.
+        //    이미 같은 기록이 있으면 `record`가 스스로 되쓰기를 막는다.
+        let verifiedAt = Date()
+        if case let .record(hit) = HitAttribution.verdict(usage: snap, now: verifiedAt) {
+            await record(hit, on: active.id, at: verifiedAt)
+        }
+
+        // ② 임계값 선제 전환(사용자 옵션). 위 기록이 전환까지 끝냈으면 활성이 바뀌었으므로
+        //    이번 폴의 advisory 작업은 대상이 사라진다 — 조회 직후와 같은 이유로 재확인한다.
+        guard advisoryEffectivelyEnabled,
+              let current = store.file.active(of: .claude), current.id == active.id else { return }
 
         let threshold = advisoryThreshold
         let util = snap.fiveHourPercent ?? 0
@@ -1715,7 +1756,7 @@ final class AccountsState: ObservableObject {
         case let .notifyAdvisoryOnly(id):
             // 임계값 선제 경고 알림 — **소진이 아니다**(문구가 섞이면 거짓말). 자동 전환이
             // 꺼진 풀에서만 온다. 계정+창(resetsAt) 전이당 1회 — 엔진이 alreadyAdvised로
-            // 걸러 이 케이스를 딱 한 번만 돌려주므로(pollThreshold의 last-advised 맵) 여기선
+            // 걸러 이 케이스를 딱 한 번만 돌려주므로(pollActiveUsage의 last-advised 맵) 여기선
             // 무조건 알린다.
             let name = store.file.accounts.first { $0.id == id }?.nickname ?? "?"
             notify(title: l.accountsNotifyAdvisoryTitle(name),

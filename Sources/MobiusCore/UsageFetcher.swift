@@ -127,6 +127,14 @@ public enum UsageFetcher {
     public typealias Transport = @Sendable (URLRequest) async throws -> (Data, URLResponse)
     public static let defaultTransport: Transport = { try await session.data(for: $0) }
 
+    /// 프로세스 전역 transport 주입구 — **테스트 전용**(프로덕션에서는 항상 nil).
+    ///
+    /// 인자로 넘기는 이음매(위)만으로는 `AppState`의 5분 폴처럼 **호출부가 인자를 안 넘기는**
+    /// 경로를 테스트가 관찰할 수 없다. 그 경로가 바로 자동 전환의 소진 기록이 지나는 곳이라,
+    /// 주입구 없이는 "usage가 100%면 기록하는가"를 네트워크 없이 확인할 방법이 없다.
+    /// 같은 목적의 선례: `CursorUsageAPI.transportForTesting`.
+    public nonisolated(unsafe) static var transportForTesting: Transport?
+
     /// Claude Code 자격증명 blob(JSON)에서 access token 추출
     public static func accessToken(from keychainBlob: Data) -> String? {
         guard let obj = try? JSONSerialization.jsonObject(with: keychainBlob) as? [String: Any]
@@ -211,13 +219,14 @@ public enum UsageFetcher {
     }
 
     public static func fetch(keychainBlob: Data,
-                             transport: Transport = defaultTransport) async throws -> UsageSnapshot? {
+                             transport: Transport? = nil) async throws -> UsageSnapshot? {
+        let send = transport ?? transportForTesting ?? defaultTransport
         guard let token = accessToken(from: keychainBlob) else { return nil }
         var req = URLRequest(url: endpoint)
         req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         req.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
         req.timeoutInterval = 10
-        let (data, resp) = try await transport(req)
+        let (data, resp) = try await send(req)
         guard let http = resp as? HTTPURLResponse else { return nil }
         if http.statusCode == 401 || http.statusCode == 403 {
             throw UsageFetcherError.unauthorized

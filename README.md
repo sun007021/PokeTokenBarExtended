@@ -75,9 +75,12 @@ multiple Claude Code and/or Codex accounts and:
 - See each account's usage/rate-limit gauge and switch to it manually with one click.
 - Turn on **auto-switch**: when the active account's usage hits its limit, the app
   transparently swaps credentials to a healthy fallback account and swaps back once the
-  original recovers.
+  original recovers. The limit is detected both from the CLI's own rate-limit errors and
+  from the usage API, so a switch still happens when you burn the window somewhere other
+  than the CLI — or when you simply stop typing after getting blocked.
 - Optionally get **advisory switching** — move to a fallback *before* you hit the limit,
-  at a configurable threshold.
+  at a configurable threshold. This is off by default and is independent of the above:
+  auto-switch at 100% works whether or not you turn it on.
 
 ★ **Auto-switch only moves within the same provider's pool.** Claude accounts only
 auto-switch to other Claude accounts, and Codex accounts only to other Codex accounts —
